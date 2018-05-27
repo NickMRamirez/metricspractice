@@ -24,7 +24,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
     admin_username = "aksuser"
 
     ssh_key {
-      key_data = "${file("../example_ssh_keypairs/ssh_public_key.pem")}"
+      key_data = "${file("../example_ssh_keypairs/ssh_public_cert.pem")}"
     }
   }
 
