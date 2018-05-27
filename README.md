@@ -5,5 +5,17 @@ Practice using Telegraf, InfluxDB, Chronograf and Statsd.
 Usage:
 
 1. Spin up a Kubernetes cluster using Azure Container Service (AKS).
+
+```
+~$ cd terraform
+~$ terraform init
+~$ terraform apply
+```
+
 2. Connect to the Kubernetes cluster.
 3. Use `kubectl` to create the Kubernetes resources.
+
+```
+~$ cd kubernetes
+~$ kubectl apply -f .
+```
