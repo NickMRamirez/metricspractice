@@ -1,0 +1,122 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-configmap
+  namespace: metrics
+data:
+  telegraf.conf: |-
+    [[inputs.http_listener]]
+      service_address = ":8186"
+      read_timeout = "10s"
+      write_timeout = "10s"
+
+    [[inputs.statsd]]
+      protocol = "udp"
+      service_address = ":8125"
+      delete_gauges = true
+      delete_counters = true
+      delete_sets = true
+      delete_timings = true
+      percentiles = [90, 95, 99]
+      percentile_limit = 1000
+
+    [[outputs.influxdb]]
+      urls = ["http://influxdb.metrics.svc.cluster.local:8086"]
+      database = "telegraf"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf
+  namespace: metrics
+  labels:
+    app: telegraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegraf
+  template:
+    metadata:
+      namespace: metrics
+      labels:
+        app: telegraf
+    spec:
+      containers:
+      - name: telegraf
+        image: telegraf:latest
+        ports:
+        - name: statsdport
+          containerPort: 8125
+          protocol: UDP
+        - name: httpport
+          containerPort: 8186
+          protocol: TCP
+        volumeMounts:
+        - name: config-vol
+          mountPath: /etc/telegraf
+      volumes:
+      - name: config-vol
+        configMap:
+          name: telegraf-configmap
+          items:
+          - key: telegraf.conf
+            path: telegraf.conf
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: metrics
+  name: telegraf
+  labels:
+    app: telegraf
+spec:
+  type: ClusterIP
+  selector:
+    app: telegraf
+  ports:
+  - name: statsdport
+    port: 8125
+    protocol: UDP
+  - name: httpport
+    port: 8186
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: metrics
+  name: telegraf-statsd
+  labels:
+    app: telegraf-statsd
+spec:
+  type: NodePort
+  selector:
+    app: telegraf
+  ports:
+  - name: statsdport
+    port: 8125
+    protocol: UDP
+# TODO: Use LoadBalancer
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: metrics
+  name: telegraf
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.frontend.rule.type: PathPrefixStrip
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /telegraf
+        backend:
+          serviceName: telegraf
+          servicePort: 8186

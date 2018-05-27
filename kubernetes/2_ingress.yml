@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: metrics
+  name: traefik-ingress-controller
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: metrics
+  name: ingress-controller
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: 
+  namespace: metrics
+  name: ingress-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingress-controller
+subjects:
+- kind: ServiceAccount
+  name: traefik-ingress-controller
+  namespace: metrics
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: metrics
+  name: traefik-ingress-controller
+  labels:
+    app: traefik-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: traefik-ingress-controller
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: traefik
+        image: traefik:latest
+        ports:
+        - name: httpport
+          containerPort: 80
+        - name: adminport
+          containerPort: 8080
+        args: ["--api", "--kubernetes", "--kubernetes.namespaces=metrics", "--logLevel=INFO"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: metrics
+  name: traefik-ingress-controller
+spec:
+  selector:
+    app: traefik-ingress-controller
+  ports:
+  - name: httpport
+    port: 80
+    protocol: TCP
+  - name: adminport
+    port: 8080
+    protocol: TCP
+  type: NodePort
+# TODO: Use LoadBalancer
