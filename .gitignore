@@ -1,3 +1,4 @@
 .terraform
 apply.sh
 delete.sh
+plan.sh

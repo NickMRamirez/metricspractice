@@ -31,7 +31,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
   agent_pool_profile {
     name            = "default"
     count           = 1
-    dns_prefix      = "k8stestagent1"
     vm_size         = "Standard_B2ms" # 2 Cores, 8 GB RAM $0.094/hour
     os_type         = "Linux"
     os_disk_size_gb = 30
