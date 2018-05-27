@@ -94,14 +94,13 @@ metadata:
   labels:
     app: telegraf-statsd
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: telegraf
   ports:
   - name: statsdport
     port: 8125
     protocol: UDP
-# TODO: Use LoadBalancer
 
 ---
 apiVersion: extensions/v1beta1
